@@ -1,0 +1,9 @@
+# Basic Postfix config for demo
+myhostname = mail.example.com
+myorigin = /etc/mailname
+mydomain = example.com
+inet_interfaces = all
+inet_protocols = ipv4
+mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+relay_domains = $mydestination
+home_mailbox = Maildir/

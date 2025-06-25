@@ -1,0 +1,83 @@
+version: "3.8"
+
+services:
+
+  attacker:
+    build: ./attacker
+    container_name: attacker
+    depends_on:
+      - email-server
+    # network default, can reach email-server by name
+    command: ["python", "send_email.py"]
+
+  email-server:
+    image: instrumentisto/postfix:latest
+    container_name: email-server
+    hostname: mail
+    environment:
+      - maildomain=example.com
+      - smtp_user=user:password  # not enforced here; demo only
+    volumes:
+      - postfix_logs:/var/log/mail
+      - ./postfix/main.cf:/etc/postfix/main.cf:ro
+      - ./postfix/mailname:/etc/mailname:ro
+    ports:
+      - "25:25"
+
+  wazuh-agent:
+    image: wazuh/wazuh-agent:5.0.1
+    container_name: wazuh-agent
+    depends_on:
+      - wazuh-manager
+    volumes:
+      - postfix_logs:/var/log/mail:ro
+      - ./wazuh/agent/ossec.conf:/var/ossec/etc/ossec.conf:ro
+    command: >
+      /var/ossec/bin/ossec-control start
+      && tail -F /var/ossec/logs/ossec.log
+
+  wazuh-indexer:
+    image: wazuh/wazuh-indexer:5.0.1
+    container_name: wazuh-indexer
+    environment:
+      - cluster.name=wazuh-cluster
+      - node.name=wazuh-indexer
+      - node.master=true
+      - "discovery.type=single-node"
+      - "xpack.security.enabled=false"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - indexer_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+
+  wazuh-manager:
+    image: wazuh/wazuh-manager:5.0.1
+    container_name: wazuh-manager
+    depends_on:
+      - wazuh-indexer
+    environment:
+      - ELASTICSEARCH_HOST=wazuh-indexer
+      - ELASTICSEARCH_PORT=9200
+    ports:
+      - "1514:1514/udp"
+      - "1515:1515"
+
+  wazuh-dashboard:
+    image: wazuh/wazuh-dashboard:5.0.1
+    container_name: wazuh-dashboard
+    depends_on:
+      - wazuh-manager
+      - wazuh-indexer
+    environment:
+      - ELASTICSEARCH_HOSTS=http://wazuh-indexer:9200
+      - WAZUH_MANAGER_HOSTS=wazuh-manager
+    ports:
+      - "5601:5601"
+
+volumes:
+  postfix_logs:
+  indexer_data:
