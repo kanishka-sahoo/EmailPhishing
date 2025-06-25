@@ -4,12 +4,24 @@ node.master: true
 discovery.type: single-node
 network.host: 0.0.0.0
 http.port: 9200
+bootstrap.memory_lock: true
 
-# Disable security
+# Complete security plugin disabling
 plugins.security.disabled: true
 plugins.security.ssl.http.enabled: false
 plugins.security.ssl.transport.enabled: false
 plugins.security.allow_default_init_securityindex: false
+plugins.security.check_snapshot_restore_write_privileges: false
+plugins.security.enable_snapshot_restore_privilege: false
+plugins.security.nodes_dn: []
 
 # Elasticsearch compatibility
 compatibility.override_main_response_version: true
+
+# Additional SSL/TLS disabling
+plugins.security.ssl.transport.pemcert_filepath: ""
+plugins.security.ssl.transport.pemkey_filepath: ""
+plugins.security.ssl.transport.pemtrustedcas_filepath: ""
+plugins.security.ssl.http.pemcert_filepath: ""
+plugins.security.ssl.http.pemkey_filepath: ""
+plugins.security.ssl.http.pemtrustedcas_filepath: ""

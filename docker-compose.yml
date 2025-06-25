@@ -38,7 +38,7 @@ services:
       && tail -F /var/ossec/logs/ossec.log
 
   wazuh-indexer:
-    image: wazuh/wazuh-indexer:4.3.10
+    image: opensearchproject/opensearch:1.2.4
     container_name: wazuh-indexer
     environment:
       - cluster.name=wazuh-cluster
@@ -48,12 +48,13 @@ services:
       - "bootstrap.memory_lock=true"
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - "plugins.security.disabled=true"
+      - "DISABLE_SECURITY_PLUGIN=true"
     ulimits:
       memlock:
         soft: -1
         hard: -1
     volumes:
-      - indexer_data:/usr/share/wazuh-indexer/data
+      - indexer_data:/usr/share/opensearch/data
     ports:
       - "9200:9200"
 
