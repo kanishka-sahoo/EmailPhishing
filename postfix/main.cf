@@ -7,3 +7,5 @@ inet_protocols = ipv4
 mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
 relay_domains = $mydestination
 home_mailbox = Maildir/
+alias_maps = hash:/etc/aliases
+alias_database = hash:/etc/aliases

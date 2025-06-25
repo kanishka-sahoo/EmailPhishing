@@ -1,0 +1,15 @@
+cluster.name: wazuh-cluster
+node.name: wazuh-indexer
+node.master: true
+discovery.type: single-node
+network.host: 0.0.0.0
+http.port: 9200
+
+# Disable security
+plugins.security.disabled: true
+plugins.security.ssl.http.enabled: false
+plugins.security.ssl.transport.enabled: false
+plugins.security.allow_default_init_securityindex: false
+
+# Elasticsearch compatibility
+compatibility.override_main_response_version: true
