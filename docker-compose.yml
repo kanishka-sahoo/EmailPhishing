@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
 
   attacker:
@@ -7,7 +5,6 @@ services:
     container_name: attacker
     depends_on:
       - email-server
-    # network default, can reach email-server by name
     command: ["python", "send_email.py"]
 
   email-server:
@@ -16,7 +13,7 @@ services:
     hostname: mail
     environment:
       - maildomain=example.com
-      - smtp_user=user:password  # not enforced here; demo only
+      - smtp_user=user:password
     volumes:
       - postfix_logs:/var/log/mail
       - ./postfix/main.cf:/etc/postfix/main.cf:ro
@@ -25,7 +22,7 @@ services:
       - "25:25"
 
   wazuh-agent:
-    image: wazuh/wazuh-agent:5.0.1
+    image: wazuh/wazuh-agent:5.0.0
     container_name: wazuh-agent
     depends_on:
       - wazuh-manager
@@ -37,7 +34,7 @@ services:
       && tail -F /var/ossec/logs/ossec.log
 
   wazuh-indexer:
-    image: wazuh/wazuh-indexer:5.0.1
+    image: wazuh/wazuh-indexer:5.0.0
     container_name: wazuh-indexer
     environment:
       - cluster.name=wazuh-cluster
@@ -55,7 +52,7 @@ services:
       - "9200:9200"
 
   wazuh-manager:
-    image: wazuh/wazuh-manager:5.0.1
+    image: wazuh/wazuh-manager:5.0.0
     container_name: wazuh-manager
     depends_on:
       - wazuh-indexer
@@ -67,7 +64,7 @@ services:
       - "1515:1515"
 
   wazuh-dashboard:
-    image: wazuh/wazuh-dashboard:5.0.1
+    image: wazuh/wazuh-dashboard:5.0.0
     container_name: wazuh-dashboard
     depends_on:
       - wazuh-manager
