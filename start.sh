@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# NOTE: Authentication is ENABLED for Wazuh Dashboard and OpenSearch.
+# - The indexer security plugin is enabled (DISABLE_SECURITY_PLUGIN is removed)
+# - The dashboard will prompt for login
+# - The admin password is set to 'password' automatically on startup
+#
+# If you want to change the password, update the PASSWORD variable below.
+
+PASSWORD='password'
+ADMIN_HASH='$2y$12$Uu6dGm89FUVha12sMM4JUeeLymBGItttY3bEoRHXvnUjDzt2QNUMS'
+INTERNAL_USERS=internal_users.yml
+
 # Email Phishing Detection SOC Lab - Startup Script
 # This script helps deploy and manage the SOC lab environment
 
@@ -84,6 +95,11 @@ start_environment() {
     if [ $wait_time -ge $max_wait ]; then
         print_warning "Some services may still be starting up. Check with 'docker compose ps'"
     fi
+
+    # After starting services, update admin password if indexer is running
+    if docker compose ps | grep -q wazuh-indexer; then
+        update_admin_password
+    fi
 }
 
 # Function to trigger the attack
@@ -153,6 +169,26 @@ show_help() {
     echo "  $0 start          # Start the environment"
     echo "  $0 logs wazuh-agent  # Show Wazuh agent logs"
     echo "  $0 attack         # Trigger phishing attack"
+}
+
+# Function to update admin password
+update_admin_password() {
+    print_status "Updating OpenSearch admin password..."
+    docker cp wazuh-indexer:/usr/share/opensearch/plugins/opensearch-security/securityconfig/internal_users.yml $INTERNAL_USERS
+    sed -i "/^admin:/,/^  description:/s/^  hash: .*/  hash: \"$ADMIN_HASH\"/" $INTERNAL_USERS
+    docker cp $INTERNAL_USERS wazuh-indexer:/usr/share/opensearch/plugins/opensearch-security/securityconfig/internal_users.yml
+    docker exec wazuh-indexer bash -c '
+      export INSTALLATION_DIR=/usr/share/opensearch
+      export JAVA_HOME=$INSTALLATION_DIR/jdk
+      bash /usr/share/opensearch/plugins/opensearch-security/tools/securityadmin.sh \
+        -cd /usr/share/opensearch/plugins/opensearch-security/securityconfig/ \
+        -nhnv \
+        -cacert $INSTALLATION_DIR/config/root-ca.pem \
+        -cert $INSTALLATION_DIR/config/kirk.pem \
+        -key $INSTALLATION_DIR/config/kirk-key.pem \
+        -p 9200 -icl
+    '
+    print_success "Admin password updated. Use admin:$PASSWORD to log in."
 }
 
 # Main script logic

@@ -29,7 +29,7 @@ services:
       - "25:25"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "pgrep", "postfix"]
+      test: ["CMD", "pidof", "master"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -55,7 +55,6 @@ services:
       - "discovery.type=single-node"
       - "bootstrap.memory_lock=true"
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - "DISABLE_SECURITY_PLUGIN=true"
     ulimits:
       memlock:
         soft: -1
@@ -66,7 +65,7 @@ services:
       - "9200:9200"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      test: ["CMD-SHELL", "curl -kf -u admin:password https://localhost:9200/_cluster/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -91,8 +90,8 @@ services:
     environment:
       - ELASTICSEARCH_HOST=wazuh-indexer
       - ELASTICSEARCH_PORT=9200
-      - ELASTICSEARCH_PROTOCOL=http
-      - ELASTICSEARCH_URL=http://wazuh-indexer:9200
+      - ELASTICSEARCH_PROTOCOL=https
+      - ELASTICSEARCH_URL=https://wazuh-indexer:9200
     ports:
       - "1514:1514/udp"
       - "1515:1515"
@@ -147,7 +146,7 @@ services:
       wazuh-indexer:
         condition: service_healthy
     environment:
-      - ELASTICSEARCH_HOSTS=http://wazuh-indexer:9200
+      - ELASTICSEARCH_HOSTS=https://wazuh-indexer:9200
       - WAZUH_MANAGER_HOSTS=wazuh-manager
     volumes:
       - ./wazuh/dashboard/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
