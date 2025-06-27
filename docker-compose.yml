@@ -30,19 +30,19 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "pidof", "master"]
-      interval: 30s
-      timeout: 10s
+      interval: 10s
+      timeout: 5s
       retries: 3
-      start_period: 40s
+      start_period: 20s
     command: ["/data/entrypoint.sh"]
     networks:
       - soc-network
     deploy:
       resources:
         limits:
-          memory: 2G
-        reservations:
           memory: 1G
+        reservations:
+          memory: 512M
 
   wazuh-indexer:
     image: opensearchproject/opensearch:1.2.4
@@ -55,6 +55,7 @@ services:
       - "discovery.type=single-node"
       - "bootstrap.memory_lock=true"
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "DISABLE_SECURITY_PLUGIN=true"
     ulimits:
       memlock:
         soft: -1
@@ -65,17 +66,17 @@ services:
       - "9200:9200"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -kf -u admin:password https://localhost:9200/_cluster/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 8s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
-          memory: 2G
+          memory: 1.5G
         reservations:
-          memory: 1G
+          memory: 768M
     networks:
       soc-network:
         aliases:
@@ -90,24 +91,24 @@ services:
     environment:
       - ELASTICSEARCH_HOST=wazuh-indexer
       - ELASTICSEARCH_PORT=9200
-      - ELASTICSEARCH_PROTOCOL=https
-      - ELASTICSEARCH_URL=https://wazuh-indexer:9200
+      - ELASTICSEARCH_PROTOCOL=http
+      - ELASTICSEARCH_URL=http://wazuh-indexer:9200
     ports:
       - "1514:1514/udp"
       - "1515:1515"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "pgrep", "wazuh-manager"]
-      interval: 30s
-      timeout: 10s
+      interval: 10s
+      timeout: 5s
       retries: 3
-      start_period: 60s
+      start_period: 30s
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 384M
         reservations:
-          memory: 256M
+          memory: 192M
     networks:
       - soc-network
 
@@ -124,18 +125,18 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "pgrep", "wazuh-agentd"]
-      interval: 30s
-      timeout: 10s
+      interval: 10s
+      timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 20s
     command: >
       sh -c "/var/ossec/bin/wazuh-control start && tail -F /var/ossec/logs/ossec.log"
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 192M
         reservations:
-          memory: 128M
+          memory: 96M
     networks:
       - soc-network
 
@@ -146,7 +147,7 @@ services:
       wazuh-indexer:
         condition: service_healthy
     environment:
-      - ELASTICSEARCH_HOSTS=https://wazuh-indexer:9200
+      - ELASTICSEARCH_HOSTS=http://wazuh-indexer:9200
       - WAZUH_MANAGER_HOSTS=wazuh-manager
     volumes:
       - ./wazuh/dashboard/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
@@ -154,17 +155,17 @@ services:
       - "5601:5601"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5601/api/status"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      test: ["CMD", "curl", "-sf", "http://localhost:5601/api/status"]
+      interval: 15s
+      timeout: 8s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 384M
         reservations:
-          memory: 256M
+          memory: 192M
     networks:
       - soc-network
 

@@ -40,6 +40,17 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Function to show startup tips
+show_startup_tips() {
+    echo ""
+    print_status "Startup Optimization Tips:"
+    echo "  • Use 'docker system prune -f' to clean up unused images/containers"
+    echo "  • Ensure sufficient disk space and memory"
+    echo "  • Close other resource-intensive applications"
+    echo "  • Use 'docker compose pull' to pre-download images"
+    echo "  • Consider using 'docker buildx' for faster builds"
+}
+
 # Function to check prerequisites
 check_prerequisites() {
     print_status "Checking prerequisites..."
@@ -56,6 +67,12 @@ check_prerequisites() {
         exit 1
     fi
     
+    # Check Docker daemon is running
+    if ! docker info &> /dev/null; then
+        print_error "Docker daemon is not running. Please start Docker."
+        exit 1
+    fi
+    
     # Check if ports are available
     local ports=(25 1514 1515 5601 9200)
     for port in "${ports[@]}"; do
@@ -64,7 +81,30 @@ check_prerequisites() {
         fi
     done
     
+    # Check available disk space (at least 2GB)
+    local available_space=$(df . | awk 'NR==2 {print $4}')
+    if [ "$available_space" -lt 2097152 ]; then  # 2GB in KB
+        print_warning "Low disk space available. Consider freeing up space."
+    fi
+    
+    # Check available memory (at least 4GB)
+    local available_memory=$(free -m | awk 'NR==2 {print $7}')
+    if [ "$available_memory" -lt 4096 ]; then
+        print_warning "Low memory available. Consider closing other applications."
+    fi
+    
     print_success "Prerequisites check completed"
+}
+
+# Function to check service health more efficiently
+check_services_health() {
+    local healthy_count=0
+    local total_services=6  # attacker, email-server, wazuh-indexer, wazuh-manager, wazuh-agent, wazuh-dashboard
+    
+    # Count healthy services using grep
+    healthy_count=$(docker compose ps | grep -c "healthy" || echo "0")
+    
+    echo $healthy_count
 }
 
 # Function to start the environment
@@ -78,22 +118,35 @@ start_environment() {
     print_status "Waiting for services to be healthy..."
     
     # Wait for services to be ready
-    local max_wait=300  # 5 minutes
+    local max_wait=180  # 3 minutes (reduced from 5 minutes)
     local wait_time=0
+    local last_healthy_count=0
     
     while [ $wait_time -lt $max_wait ]; do
-        if docker compose ps | grep -q "healthy"; then
+        local current_healthy=$(check_services_health)
+        
+        if [ "$current_healthy" != "$last_healthy_count" ]; then
+            print_status "Services healthy: $current_healthy/$total_services"
+            last_healthy_count=$current_healthy
+        fi
+        
+        if [ "$current_healthy" -eq "$total_services" ]; then
             print_success "All services are healthy!"
             break
         fi
         
-        sleep 10
-        wait_time=$((wait_time + 10))
-        print_status "Waiting for services to be ready... ($wait_time/$max_wait seconds)"
+        sleep 5  # Reduced from 10s to 5s
+        wait_time=$((wait_time + 5))
+        
+        # Show progress every 30 seconds
+        if [ $((wait_time % 30)) -eq 0 ]; then
+            print_status "Waiting for services to be ready... ($wait_time/$max_wait seconds) - $current_healthy/$total_services healthy"
+        fi
     done
     
     if [ $wait_time -ge $max_wait ]; then
         print_warning "Some services may still be starting up. Check with 'docker compose ps'"
+        docker compose ps
     fi
 
     # After starting services, update admin password if indexer is running
@@ -163,6 +216,7 @@ show_help() {
     echo "  logs [SERVICE] Show logs (all services or specific service)"
     echo "  attack      Trigger the phishing email attack"
     echo "  cleanup     Stop and clean up all containers and volumes"
+    echo "  optimize    Optimize the environment for faster startup"
     echo "  help        Show this help message"
     echo ""
     echo "Examples:"
@@ -191,12 +245,28 @@ update_admin_password() {
     print_success "Admin password updated. Use admin:$PASSWORD to log in."
 }
 
+# Function to optimize environment
+optimize_environment() {
+    print_status "Optimizing environment for faster startup..."
+    
+    # Pre-download images
+    print_status "Pre-downloading Docker images..."
+    docker compose pull
+    
+    # Clean up unused resources
+    print_status "Cleaning up unused Docker resources..."
+    docker system prune -f
+    
+    print_success "Environment optimization completed"
+}
+
 # Main script logic
 case "${1:-help}" in
     start)
         check_prerequisites
         start_environment
         show_status
+        show_startup_tips
         ;;
     stop)
         stop_environment
@@ -218,6 +288,9 @@ case "${1:-help}" in
         ;;
     cleanup)
         cleanup
+        ;;
+    optimize)
+        optimize_environment
         ;;
     help|--help|-h)
         show_help
