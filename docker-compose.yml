@@ -93,6 +93,12 @@ services:
       - ELASTICSEARCH_PORT=9200
       - ELASTICSEARCH_PROTOCOL=http
       - ELASTICSEARCH_URL=http://wazuh-indexer:9200
+      - ELASTICSEARCH_SSL_VERIFY=false
+      - ELASTICSEARCH_SSL_CA=false
+      - ELASTICSEARCH_SSL_CERT=false
+      - ELASTICSEARCH_SSL_KEY=false
+    volumes:
+      - ./wazuh/manager/filebeat.yml:/etc/filebeat/filebeat.yml:ro
     ports:
       - "1514:1514/udp"
       - "1515:1515"
