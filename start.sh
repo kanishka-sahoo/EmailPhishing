@@ -211,6 +211,7 @@ show_help() {
     echo "  attack      Trigger the phishing email attack"
     echo "  cleanup     Stop and clean up all containers and volumes"
     echo "  optimize    Optimize the environment for faster startup"
+    echo "  init        Initialize OpenSearch compatibility and Filebeat log dir, restart Wazuh Manager"
     echo "  help        Show this help message"
     echo ""
     echo "Examples:"
@@ -266,6 +267,13 @@ case "${1:-help}" in
         start_environment
         show_status
         show_startup_tips
+        # Call init logic after starting environment
+        print_status "Running post-start initialization (OpenSearch compatibility, Filebeat log dir, restart Wazuh Manager)..."
+        curl -sf -X PUT "http://localhost:9200/_cluster/settings" -H 'Content-Type: application/json' -d '{"persistent": {"compatibility": {"override_main_response_version": true}}}' && print_success "OpenSearch compatibility set."
+        print_status "Ensuring /var/log/filebeat exists in wazuh-manager container..."
+        docker compose exec wazuh-manager mkdir -p /var/log/filebeat && print_success "/var/log/filebeat created."
+        print_status "Restarting wazuh-manager container..."
+        docker compose restart wazuh-manager && print_success "wazuh-manager restarted."
         ;;
     stop)
         stop_environment
@@ -290,6 +298,15 @@ case "${1:-help}" in
         ;;
     optimize)
         optimize_environment
+        ;;
+    init)
+        print_status "Initializing SOC lab environment (OpenSearch compatibility, Filebeat log dir, restart Wazuh Manager)..."
+        print_status "Setting OpenSearch compatibility.override_main_response_version..."
+        curl -sf -X PUT "http://localhost:9200/_cluster/settings" -H 'Content-Type: application/json' -d '{"persistent": {"compatibility": {"override_main_response_version": true}}}' && print_success "OpenSearch compatibility set."
+        print_status "Ensuring /var/log/filebeat exists in wazuh-manager container..."
+        docker compose exec wazuh-manager mkdir -p /var/log/filebeat && print_success "/var/log/filebeat created."
+        print_status "Restarting wazuh-manager container..."
+        docker compose restart wazuh-manager && print_success "wazuh-manager restarted."
         ;;
     help|--help|-h)
         show_help
