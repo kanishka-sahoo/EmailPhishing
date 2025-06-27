@@ -12,6 +12,11 @@ output.elasticsearch:
   protocol: "http"
   ssl.enabled: false
   ssl.verification_mode: none
+  index: "wazuh-alerts-%{+yyyy.MM.dd}"
+
+setup.ilm.enabled: false
+setup.template.name: "wazuh-alerts"
+setup.template.pattern: "wazuh-alerts-*"
 
 logging.level: info
 logging.to_files: true
