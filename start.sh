@@ -221,6 +221,11 @@ show_help() {
 
 # Function to update admin password
 update_admin_password() {
+    # Check if security plugin is disabled in the running container
+    if docker compose exec wazuh-indexer printenv | grep -q 'DISABLE_SECURITY_PLUGIN=true'; then
+        print_status "OpenSearch security plugin is disabled. Skipping admin password update."
+        return
+    fi
     print_status "Updating OpenSearch admin password..."
     docker cp wazuh-indexer:/usr/share/opensearch/plugins/opensearch-security/securityconfig/internal_users.yml $INTERNAL_USERS
     sed -i "/^admin:/,/^  description:/s/^  hash: .*/  hash: \"$ADMIN_HASH\"/" $INTERNAL_USERS
