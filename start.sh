@@ -100,54 +100,48 @@ check_prerequisites() {
 check_services_health() {
     local healthy_count=0
     local total_services=6  # attacker, email-server, wazuh-indexer, wazuh-manager, wazuh-agent, wazuh-dashboard
-    
-    # Count healthy services using grep
-    healthy_count=$(docker compose ps | grep -c "healthy" || echo "0")
-    
+
+    # Use docker compose ps --format to count healthy containers robustly
+    healthy_count=$(docker compose ps --format '{{.Service}} {{.Health}}' | grep -c 'healthy')
     echo $healthy_count
 }
 
 # Function to start the environment
 start_environment() {
     print_status "Starting SOC lab environment..."
-    
+
+    local total_services=6  # attacker, email-server, wazuh-indexer, wazuh-manager, wazuh-agent, wazuh-dashboard
+
     # Build and start services
     docker compose up -d --build
-    
+
     print_success "Services started successfully"
     print_status "Waiting for services to be healthy..."
-    
+
     # Wait for services to be ready
     local max_wait=180  # 3 minutes (reduced from 5 minutes)
     local wait_time=0
     local last_healthy_count=0
-    
+
     while [ $wait_time -lt $max_wait ]; do
         local current_healthy=$(check_services_health)
-        
-        if [ "$current_healthy" != "$last_healthy_count" ]; then
+        current_healthy=${current_healthy:-0}
+        last_healthy_count=${last_healthy_count:-0}
+        if [ "$current_healthy" -ne "$last_healthy_count" ]; then
             print_status "Services healthy: $current_healthy/$total_services"
             last_healthy_count=$current_healthy
         fi
-        
         if [ "$current_healthy" -eq "$total_services" ]; then
             print_success "All services are healthy!"
             break
         fi
-        
         sleep 5  # Reduced from 10s to 5s
         wait_time=$((wait_time + 5))
-        
         # Show progress every 30 seconds
         if [ $((wait_time % 30)) -eq 0 ]; then
             print_status "Waiting for services to be ready... ($wait_time/$max_wait seconds) - $current_healthy/$total_services healthy"
         fi
     done
-    
-    if [ $wait_time -ge $max_wait ]; then
-        print_warning "Some services may still be starting up. Check with 'docker compose ps'"
-        docker compose ps
-    fi
 
     # After starting services, update admin password if indexer is running
     if docker compose ps | grep -q wazuh-indexer; then

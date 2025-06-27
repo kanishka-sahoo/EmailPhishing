@@ -28,7 +28,5 @@ COPY ossec.conf /var/ossec/etc/ossec.conf
 RUN getent passwd wazuh >/dev/null 2>&1 || adduser --disabled-password --gecos '' wazuh && \
     chown -R wazuh:wazuh /var/ossec
 
-USER wazuh
-
-# Start agent
+# Start agent as root (will handle user switching internally)
 CMD ["/var/ossec/bin/wazuh-control", "start"]
