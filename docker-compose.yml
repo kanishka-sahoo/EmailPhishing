@@ -104,7 +104,7 @@ services:
       - "1515:1515"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "pgrep", "wazuh-manager"]
+      test: ["CMD", "pgrep", "wazuh-analysisd"]
       interval: 10s
       timeout: 5s
       retries: 3
