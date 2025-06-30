@@ -143,21 +143,34 @@ start_environment() {
         fi
     done
 
-    # Automatically create wazuh-alerts-* index pattern with @timestamp as time field
-    print_status "Ensuring wazuh-alerts-* index pattern uses @timestamp as time field..."
-    curl -s -X POST "http://localhost:5601/api/saved_objects/index-pattern/wazuh-alerts-*" \
-      -H 'kbn-xsrf: true' \
-      -H 'Content-Type: application/json' \
-      -d '{"attributes":{"title":"wazuh-alerts-*","timeFieldName":"@timestamp"}}' \
-      | grep -q '"id":"wazuh-alerts-*"' && print_success "Index pattern set." || print_warning "Index pattern may already exist or could not be set automatically."
+    # Wait for OpenSearch Dashboards API to be ready
+    print_status "Waiting for OpenSearch Dashboards API to be ready..."
+    for i in {1..30}; do
+      if curl -s -o /dev/null -w "%{http_code}" "http://localhost:5601/api/status" | grep -q "200"; then
+        print_success "OpenSearch Dashboards API is ready."
+        break
+      fi
+      sleep 2
+    done
 
-    # Set wazuh-alerts-* as the default index pattern
-    print_status "Setting wazuh-alerts-* as the default index pattern..."
+    # Check if wazuh-alerts-* data view exists
+    print_status "Checking if wazuh-alerts-* data view exists..."
+    if ! curl -s -X GET "http://localhost:5601/api/data_views/data_view/wazuh-alerts-*" -H 'kbn-xsrf: true' | grep -q '"id":"wazuh-alerts-*"'; then
+      print_status "Creating wazuh-alerts-* data view with @timestamp as time field..."
+      curl -s -X POST "http://localhost:5601/api/data_views/data_view" \
+        -H 'kbn-xsrf: true' \
+        -H 'Content-Type: application/json' \
+        -d '{"data_view":{"title":"wazuh-alerts-*","name":"wazuh-alerts-*","timeFieldName":"@timestamp"}}'
+    else
+      print_status "wazuh-alerts-* data view already exists."
+    fi
+
+    # Set wazuh-alerts-* as the default data view
+    print_status "Setting wazuh-alerts-* as the default data view..."
     curl -s -X POST "http://localhost:5601/api/kibana/settings/defaultIndex" \
       -H 'kbn-xsrf: true' \
       -H 'Content-Type: application/json' \
-      -d '{"value":"wazuh-alerts-*"}' \
-      | grep -q '"acknowledged":true' && print_success "Default index pattern set." || print_warning "Could not set default index pattern automatically."
+      -d '{"value":"wazuh-alerts-*"}'
 
     # After starting services, update admin password if indexer is running
     if docker compose ps | grep -q wazuh-indexer; then
