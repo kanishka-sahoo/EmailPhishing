@@ -143,6 +143,22 @@ start_environment() {
         fi
     done
 
+    # Automatically create wazuh-alerts-* index pattern with @timestamp as time field
+    print_status "Ensuring wazuh-alerts-* index pattern uses @timestamp as time field..."
+    curl -s -X POST "http://localhost:5601/api/saved_objects/index-pattern/wazuh-alerts-*" \
+      -H 'kbn-xsrf: true' \
+      -H 'Content-Type: application/json' \
+      -d '{"attributes":{"title":"wazuh-alerts-*","timeFieldName":"@timestamp"}}' \
+      | grep -q '"id":"wazuh-alerts-*"' && print_success "Index pattern set." || print_warning "Index pattern may already exist or could not be set automatically."
+
+    # Set wazuh-alerts-* as the default index pattern
+    print_status "Setting wazuh-alerts-* as the default index pattern..."
+    curl -s -X POST "http://localhost:5601/api/kibana/settings/defaultIndex" \
+      -H 'kbn-xsrf: true' \
+      -H 'Content-Type: application/json' \
+      -d '{"value":"wazuh-alerts-*"}' \
+      | grep -q '"acknowledged":true' && print_success "Default index pattern set." || print_warning "Could not set default index pattern automatically."
+
     # After starting services, update admin password if indexer is running
     if docker compose ps | grep -q wazuh-indexer; then
         update_admin_password
