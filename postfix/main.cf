@@ -9,3 +9,5 @@ relay_domains = $mydestination
 home_mailbox = Maildir/
 alias_maps = hash:/etc/aliases
 alias_database = hash:/etc/aliases
+smtpd_relay_restrictions = permit_mynetworks, reject_unauth_destination
+smtpd_recipient_restrictions = permit_mynetworks, reject_unauth_destination

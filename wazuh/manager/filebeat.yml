@@ -3,6 +3,7 @@ filebeat.inputs:
   enabled: true
   paths:
     - /var/ossec/logs/alerts/alerts.json
+    - /var/log/mail.log
   json.keys_under_root: true
   json.add_error_key: true
   json.message_key: message
