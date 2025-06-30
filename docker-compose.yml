@@ -20,7 +20,7 @@ services:
       - maildomain=example.com
       - smtp_user=user:password
     volumes:
-      - postfix_logs:/var/log/mail
+      - postfix_logs:/var/log
       - ./postfix/main.cf:/etc/postfix/main.cf
       - ./postfix/aliases:/etc/aliases
       - ./wazuh/agent/ossec.conf:/var/ossec/etc/ossec.conf:ro
@@ -97,6 +97,7 @@ services:
       - ELASTICSEARCH_SSL_CERT=false
       - ELASTICSEARCH_SSL_KEY=false
     volumes:
+      - postfix_logs:/var/log
       - ./wazuh/manager/filebeat.yml:/etc/filebeat/filebeat.yml:ro
     ports:
       - "1514:1514/udp"
