@@ -119,7 +119,7 @@ start_environment() {
     print_status "Waiting for services to be healthy..."
 
     # Wait for services to be ready
-    local max_wait=180  # 3 minutes (reduced from 5 minutes)
+    local max_wait=90  # 3 minutes (reduced from 5 minutes)
     local wait_time=0
     local last_healthy_count=0
 

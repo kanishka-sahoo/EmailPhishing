@@ -13,7 +13,7 @@ services:
       - soc-network
 
   email-server:
-    image: instrumentisto/postfix:latest
+    build: ./email-server
     container_name: email-server
     hostname: mail
     environment:
@@ -21,9 +21,9 @@ services:
       - smtp_user=user:password
     volumes:
       - postfix_logs:/var/log/mail
-      - ./postfix:/data:ro
-      - ./postfix/main.cf:/etc/postfix/main.cf:ro
-      - ./postfix/mailname:/etc/mailname:ro
+      - ./postfix/main.cf:/etc/postfix/main.cf
+      - ./postfix/aliases:/etc/aliases
+      - ./wazuh/agent/ossec.conf:/var/ossec/etc/ossec.conf:ro
     ports:
       - "25:25"
     restart: unless-stopped
@@ -39,9 +39,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 1.5G
         reservations:
-          memory: 512M
+          memory: 768M
 
   wazuh-indexer:
     image: opensearchproject/opensearch:1.2.4
@@ -115,33 +115,6 @@ services:
           memory: 384M
         reservations:
           memory: 192M
-    networks:
-      - soc-network
-
-  wazuh-agent:
-    build: ./wazuh/agent
-    image: wazuh-agent:local
-    container_name: wazuh-agent
-    depends_on:
-      - wazuh-manager
-    volumes:
-      - postfix_logs:/var/log/mail:ro
-      - ./wazuh/agent/ossec.conf:/var/ossec/etc/ossec.conf:ro
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "pgrep", "wazuh-agentd"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-    command: >
-      sh -c "/var/ossec/bin/wazuh-control start && tail -F /var/ossec/logs/ossec.log"
-    deploy:
-      resources:
-        limits:
-          memory: 192M
-        reservations:
-          memory: 96M
     networks:
       - soc-network
 
