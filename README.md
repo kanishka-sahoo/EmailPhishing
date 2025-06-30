@@ -200,12 +200,19 @@ Once all containers are running:
   - Alert management
   - Threat hunting tools
 
-### OpenSearch API
-- **URL**: http://localhost:9200
+### Wazuh API
+- **URL**: https://localhost:55000
+- **Authentication**: 
+  - Username: `wazuh`
+  - Password: `wazuh`
+  - Method: `GET /security/user/authenticate?raw=true` with basic auth
+  - Use returned token as Bearer token for subsequent requests
 - **Features**:
-  - Direct access to indexed security data
-  - RESTful API for custom integrations
-  - Data export capabilities
+  - RESTful API for Wazuh management
+  - Agent management and monitoring
+  - Alert queries and filtering
+  - System configuration access
+  - Integration capabilities
 
 ## 🐛 Troubleshooting
 

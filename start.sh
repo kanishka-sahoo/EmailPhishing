@@ -164,6 +164,7 @@ show_status() {
     echo ""
     print_status "Service URLs:"
     echo "  - Wazuh Dashboard: http://localhost:5601"
+    echo "  - Wazuh API: https://localhost:55000"
     echo "  - OpenSearch API: http://localhost:9200"
     echo "  - SMTP Server: localhost:25"
 }

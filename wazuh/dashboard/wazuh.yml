@@ -1,0 +1,6 @@
+hosts:
+    - wazuh-manager:
+        url: https://wazuh-manager
+        port: 55000
+        username: wazuh
+        password: wazuh

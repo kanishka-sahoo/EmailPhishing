@@ -82,7 +82,7 @@ services:
           - wazuh.indexer
 
   wazuh-manager:
-    image: wazuh/wazuh-manager:4.3.10
+    image: wazuh/wazuh-manager:4.3.9
     container_name: wazuh-manager
     depends_on:
       wazuh-indexer:
@@ -153,8 +153,8 @@ services:
         condition: service_healthy
     environment:
       - ELASTICSEARCH_HOSTS=http://wazuh-indexer:9200
-      - WAZUH_MANAGER_HOSTS=wazuh-manager
     volumes:
+      - ./wazuh/dashboard/wazuh.yml:/usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml:ro
       - ./wazuh/dashboard/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
     ports:
       - "5601:5601"
