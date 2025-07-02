@@ -298,8 +298,8 @@ fix_filebeat_permissions() {
     local filebeat_yml="wazuh/manager/filebeat.yml"
     if [ -f "$filebeat_yml" ]; then
         print_status "Fixing permissions for $filebeat_yml (root:root, 644)"
-        sudo chown root:root "$filebeat_yml" 2>/dev/null || chown root:root "$filebeat_yml"
-        chmod 644 "$filebeat_yml"
+        sudo chown root:root "$filebeat_yml" 2>/dev/null
+        sudo chmod 644 "$filebeat_yml"
     else
         print_warning "$filebeat_yml not found, skipping permission fix."
     fi
