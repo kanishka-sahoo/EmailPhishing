@@ -7,11 +7,6 @@ filebeat.inputs:
   json.add_error_key: true
   json.message_key: message
 
-- type: log
-  enabled: true
-  paths:
-    - /var/log/mail.log
-
 output.elasticsearch:
   hosts: ["http://wazuh-indexer:9200"]
   protocol: "http"
@@ -21,7 +16,7 @@ output.elasticsearch:
 
 setup.ilm.enabled: false
 setup.template.name: "wazuh-alerts"
-setup.template.pattern: "wazuh-alerts-*"
+setup.template.index_patterns: "wazuh-alerts-*"
 
 logging.level: info
 logging.to_files: true

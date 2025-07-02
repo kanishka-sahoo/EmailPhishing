@@ -223,6 +223,10 @@ cleanup() {
     print_status "Cleaning up environment..."
     docker compose down -v --remove-orphans
     docker system prune -f
+    print_status "Fixing permissions for wazuh/manager/filebeat.yml..."
+    sudo chown $USER:$USER wazuh/manager/filebeat.yml
+    sudo chmod 644 wazuh/manager/filebeat.yml
+    print_success "Permissions for wazuh/manager/filebeat.yml set to $USER:$USER and 644."
     print_success "Cleanup completed"
 }
 
