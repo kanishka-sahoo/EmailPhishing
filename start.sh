@@ -290,10 +290,26 @@ optimize_environment() {
     print_success "Environment optimization completed"
 }
 
+# Trap for graceful shutdown
+trap 'print_status "Gracefully stopping SOC lab environment..."; docker compose down; print_success "Environment stopped"; exit 0' SIGINT SIGTERM
+
+# Function to fix filebeat.yml permissions
+fix_filebeat_permissions() {
+    local filebeat_yml="wazuh/manager/filebeat.yml"
+    if [ -f "$filebeat_yml" ]; then
+        print_status "Fixing permissions for $filebeat_yml (root:root, 644)"
+        sudo chown root:root "$filebeat_yml" 2>/dev/null || chown root:root "$filebeat_yml"
+        chmod 644 "$filebeat_yml"
+    else
+        print_warning "$filebeat_yml not found, skipping permission fix."
+    fi
+}
+
 # Main script logic
 case "${1:-help}" in
     start)
         check_prerequisites
+        fix_filebeat_permissions
         start_environment
         show_status
         show_startup_tips
@@ -311,6 +327,7 @@ case "${1:-help}" in
     restart)
         stop_environment
         sleep 2
+        fix_filebeat_permissions
         start_environment
         show_status
         ;;
