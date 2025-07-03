@@ -1,0 +1,13 @@
+<ruleset>
+<group name="email_bounce_detection">
+
+  <rule id="140012" level="10">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <list field="message" lookup="match_key">bounce_keywords</list>
+    <description>Undelivered email detected - possible bounce/spam to invalid user</description>
+    <group>email,bounce,smtp,anomaly</group>
+  </rule>
+
+</group>
+</ruleset>

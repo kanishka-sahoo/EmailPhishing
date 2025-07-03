@@ -1,0 +1,12 @@
+<ruleset>
+<rule id="140007" level="13">
+  <decoded_as>json</decoded_as>
+  <field name="program">postfix</field>
+  <field name="message">from=<(?P<from>[^>]+)></field>
+  <list field="from" lookup="match_key">suspicious_senders</list>
+  <field name="message">Content-Disposition: attachment;</field>
+  <list field="message" lookup="match_key">malicious_extensions</list>
+  <description>Malicious attachment received from suspicious sender: $(from)</description>
+  <group>email,malware,attachment,suspicious,spoof,anomaly</group>
+</rule>
+</ruleset>

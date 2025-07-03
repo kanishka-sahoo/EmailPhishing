@@ -1,0 +1,35 @@
+<ruleset>
+<group name="email_identity_impersonation">
+
+  <!-- Rule 10: Spoofed Sender - MAIL FROM ≠ From: Header -->
+  <rule id="140014" level="12">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <regex type="pcre2">from=<(?P<mailfrom>[^>]+)>.*From:\s(?P<headerfrom>[^\s]+)</regex>
+    <list field="headerfrom" lookup="match_key">vip_users</list>
+    <conditional_field name="mailfrom" not_equal="headerfrom"/>
+    <description>Possible impersonation: MAIL FROM $(mailfrom) ≠ From: header $(headerfrom)</description>
+    <group>email,spoof,identity,anomaly</group>
+  </rule>
+
+  <!-- Rule 11: Sending on Behalf of Another User (Sender ≠ From) -->
+  <rule id="140015" level="11">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <regex type="pcre2">Sender:\s(?P<sender>[^\s]+).*From:\s(?P<from>[^\s]+)</regex>
+    <list field="from" lookup="match_key">vip_users</list>
+    <conditional_field name="sender" not_equal="from"/>
+    <description>Delegated or forged send: Sender $(sender) is sending on behalf of $(from)</description>
+    <group>email,identity,delegation,anomaly</group>
+  </rule>
+
+  <!-- Optional Correlation: Both Use Cases Combined -->
+  <rule id="140016" level="14">
+    <if_matched_sid>140014</if_matched_sid>
+    <if_matched_sid>140015</if_matched_sid>
+    <description>CRITICAL: Email spoofing + send-as detected - user impersonation attempt</description>
+    <group>email,spoof,delegation,identity,correlation,critical</group>
+  </rule>
+
+</group>
+</ruleset>

@@ -1,0 +1,33 @@
+<ruleset>
+<group name="email_groupid_external_correlation">
+
+  <!-- Rule 1: Group ID Used as Email Sender -->
+  <rule id="140009" level="11">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <field name="message">from=<(?P<sender>[^>]+)></field>
+    <list field="sender" lookup="match_key">group_ids</list>
+    <description>Group ID used for sending email: $(sender)</description>
+    <group>email,groupid,suspicious</group>
+  </rule>
+
+  <!-- Rule 2: Email Sent to External Domain -->
+  <rule id="140010" level="10">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <field name="message">to=<(?P<to>[^>]+)></field>
+    <list field="to" lookup="match_key">external_domains</list>
+    <description>Email sent to external address: $(to)</description>
+    <group>email,outbound,external</group>
+  </rule>
+
+  <!-- Rule 3: Correlation - Group ID + External Recipient -->
+  <rule id="140011" level="14">
+    <if_matched_sid>140009</if_matched_sid>
+    <if_matched_sid>140010</if_matched_sid>
+    <description>CRITICAL: Group ID email sent to external domain - potential compromise</description>
+    <group>email,groupid,external,correlation,critical</group>
+  </rule>
+
+</group>
+</ruleset>
