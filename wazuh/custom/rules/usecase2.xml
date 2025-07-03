@@ -1,0 +1,45 @@
+<ruleset>
+<group name="mail,volume_monitoring,monitored_email_activity">
+
+  <!-- OUTGOING MAIL from monitored users -->
+  <rule id="120001" level="5">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix/qmgr</field>
+    <regex>from=&lt;(?P<from>.*@corp\.com)&gt;</regex>
+    <description>Outgoing email from monitored user</description>
+    <group>email,outbound,filtered</group>
+    <options>no_full_log</options>
+  </rule>
+
+  <!-- ALERT on high-volume outgoing mail -->
+  <rule id="120002" level="10">
+    <if_matched_sid>120001</if_matched_sid>
+    <frequency>10</frequency>
+    <timeframe>60</timeframe>
+    <description>High volume of outgoing emails from monitored user</description>
+    <group>email,outbound,filtered,anomaly</group>
+    <options>no_full_log</options>
+  </rule>
+
+  <!-- INCOMING MAIL to monitored inbox users -->
+  <rule id="120010" level="5">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix/qmgr</field>
+    <regex>from=&lt;(?P<to>.*@corp\.com)&gt;</regex>
+    <description>Email received by monitored user</description>
+    <group>email,inbound,filtered</group>
+    <options>no_full_log</options>
+  </rule>
+
+  <!-- ALERT on high-volume incoming mail -->
+  <rule id="120011" level="10">
+    <if_matched_sid>120010</if_matched_sid>
+    <frequency>10</frequency>
+    <timeframe>60</timeframe>
+    <description>High volume of emails received by monitored user</description>
+    <group>email,inbound,filtered,anomaly</group>
+    <options>no_full_log</options>
+  </rule>
+
+</group>
+</ruleset>
