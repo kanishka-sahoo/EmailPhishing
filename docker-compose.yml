@@ -82,7 +82,7 @@ services:
           - wazuh.indexer
 
   wazuh-manager:
-    image: wazuh/wazuh-manager:4.3.9
+    image: wazuh/wazuh-manager:4.6.0
     container_name: wazuh-manager
     depends_on:
       wazuh-indexer:
@@ -99,6 +99,20 @@ services:
     volumes:
       - postfix_logs:/var/log
       - ./wazuh/manager/filebeat.yml:/etc/filebeat/filebeat.yml:ro
+      - ./wazuh/manager/local_rules.xml:/var/ossec/etc/rules/local_rules.xml:ro
+      - ./wazuh/manager/usecase2.xml:/var/ossec/etc/rules/usecase2.xml:ro
+      - ./wazuh/manager/usecase3_12.xml:/var/ossec/etc/rules/usecase3_12.xml:ro
+      - ./wazuh/manager/usecase4.xml:/var/ossec/etc/rules/usecase4.xml:ro
+      - ./wazuh/manager/usecase5.xml:/var/ossec/etc/rules/usecase5.xml:ro
+      - ./wazuh/manager/usecase6.xml:/var/ossec/etc/rules/usecase6.xml:ro
+      - ./wazuh/manager/usecase7.xml:/var/ossec/etc/rules/usecase7.xml:ro
+      - ./wazuh/manager/usecase8_13.xml:/var/ossec/etc/rules/usecase8_13.xml:ro
+      - ./wazuh/manager/usecase9.xml:/var/ossec/etc/rules/usecase9.xml:ro
+      - ./wazuh/manager/usecase10_11.xml:/var/ossec/etc/rules/usecase10_11.xml:ro
+      - ./wazuh/manager/ossec.conf:/var/ossec/etc/ossec.conf:ro
+      - ./wazuh/manager/shared:/var/ossec/etc/shared:rw
+      - ./wazuh/manager/create-shared-dir.sh:/etc/cont-init.d/10-create-shared-dir:ro
+      - ./wazuh/manager/api.yaml:/var/ossec/api/configuration/api.yaml:ro
     ports:
       - "1514:1514/udp"
       - "1515:1515"

@@ -1,0 +1,91 @@
+<ruleset>
+<group name="email_forwarding_advanced">
+
+  <!-- 1. After-hours email (between 7PM and 7AM) -->
+  <rule id="140004" level="10">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <match>from=</match>
+    <time>19:00:00</time>
+    <time_end>07:00:00</time_end>
+    <description>After-hours email sent by internal user</description>
+    <group>email,afterhours,anomaly</group>
+  </rule>
+
+  <!-- 2. Email sent to external domain -->
+  <rule id="140010" level="10">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <field name="message">to=<(?P<to>[^>]+)></field>
+    <list field="to" lookup="match_key">external_domains</list>
+    <description>Email sent to external address: $(to)</description>
+    <group>email,outbound,external</group>
+  </rule>
+
+  <!-- 3. Attachment included in mail -->
+  <rule id="140006" level="11">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <field name="message">Content-Disposition: attachment;</field>
+    <list field="message" lookup="match_key">sensitive_attachments</list>
+    <description>Suspicious or sensitive email attachment detected</description>
+    <group>email,attachment,malware,exfiltration</group>
+  </rule>
+
+  <!-- 4. Forwarded email/thread indicator in subject or body -->
+  <rule id="140026" level="10">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <list field="message" lookup="match_key">thread_indicators</list>
+    <description>Forwarded or thread-style email detected</description>
+    <group>email,forwarding,thread,suspicious</group>
+  </rule>
+
+  <!-- 5. Email sent from untrusted IP (not a mail server) -->
+  <rule id="140027" level="13">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <field name="srcip">!@trusted_smtp_ips</field>
+    <description>Email sent from untrusted system IP: $(srcip)</description>
+    <group>email,srcip,unauthorized,anomaly</group>
+  </rule>
+
+  <!-- 6. Volume rule: 5+ external mails in 1 min -->
+  <rule id="140028" level="12">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <list field="to" lookup="match_key">external_domains</list>
+    <frequency>5</frequency>
+    <timeframe>60</timeframe>
+    <description>High volume of outbound emails to external domains</description>
+    <group>email,volume,spam,exfiltration</group>
+  </rule>
+
+  <!-- 7. Correlation: after-hours + external mail -->
+  <rule id="140013" level="14">
+    <if_matched_sid>140004</if_matched_sid>
+    <if_matched_sid>140010</if_matched_sid>
+    <description>CRITICAL: After-hours email sent to external domain</description>
+    <group>email,forwarding,afterhours,correlation,critical</group>
+  </rule>
+
+  <!-- 8. Correlation: external + attachment -->
+  <rule id="140029" level="14">
+    <if_matched_sid>140010</if_matched_sid>
+    <if_matched_sid>140006</if_matched_sid>
+    <description>CRITICAL: Suspicious attachment sent to external recipient</description>
+    <group>email,attachment,exfiltration,correlation,critical</group>
+  </rule>
+
+  <!-- 9. Correlation: after-hours + external + attachment + thread -->
+  <rule id="140030" level="15">
+    <if_matched_sid>140004</if_matched_sid>
+    <if_matched_sid>140010</if_matched_sid>
+    <if_matched_sid>140006</if_matched_sid>
+    <if_matched_sid>140026</if_matched_sid>
+    <description>CRITICAL: Forwarded email thread with attachment sent after hours to external recipient</description>
+    <group>email,forwarding,afterhours,exfiltration,correlation,critical</group>
+  </rule>
+
+</group>
+</ruleset>

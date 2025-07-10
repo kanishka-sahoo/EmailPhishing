@@ -1,0 +1,92 @@
+<ruleset>
+<group name="email_mailbox_access_exfil_advanced">
+
+  <!-- 1. Unauthorized Mailbox Access Detected -->
+  <rule id="140050" level="12">
+    <decoded_as>json</decoded_as>
+    <field name="program">dovecot</field>
+    <field name="message">user=(?P<user>[^ ]+).*sasl_username=(?P<auth_user>[^ ]+)</field>
+    <conditional_field name="user" not_equal="auth_user"/>
+    <list field="user" lookup="match_key">vip_users</list>
+    <description>Unauthorized access: user $(auth_user) accessing mailbox of $(user)</description>
+    <group>email,mailbox,access,unauthorized</group>
+  </rule>
+
+  <!-- 2. Outbound email with suspicious attachment -->
+  <rule id="140051" level="11">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <field name="message">Content-Disposition: attachment;</field>
+    <list field="message" lookup="match_key">sensitive_attachments</list>
+    <description>Suspicious attachment detected in outbound email</description>
+    <group>email,attachment,exfiltration,suspicious</group>
+  </rule>
+
+  <!-- 3. Outbound email contains credential content -->
+  <rule id="140052" level="11">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <list field="message" lookup="match_key">credential_keywords</list>
+    <description>Potential credential or secret detected in outbound message</description>
+    <group>email,exfiltration,content,suspicious</group>
+  </rule>
+
+  <!-- 4. External recipient detected -->
+  <rule id="140053" level="10">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <field name="message">to=<(?P<to>[^>]+)></field>
+    <regex type="pcre2">@gmail\.com|@protonmail\.com|@outlook\.com</regex>
+    <description>Email sent to external recipient: $(to)</description>
+    <group>email,outbound,external</group>
+  </rule>
+
+  <!-- 5. After-hours flag -->
+  <rule id="140004" level="10">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <match>from=</match>
+    <time>19:00:00</time>
+    <time_end>07:00:00</time_end>
+    <description>After-hours email sent by internal user</description>
+    <group>email,afterhours,anomaly</group>
+  </rule>
+
+  <!-- 6. Mail sent from untrusted system -->
+  <rule id="140027" level="13">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <field name="srcip">!@trusted_smtp_ips</field>
+    <description>Email sent from untrusted IP: $(srcip)</description>
+    <group>email,srcip,unauthorized</group>
+  </rule>
+
+  <!-- 7. Correlation: Unauthorized mailbox access + credential exfil -->
+  <rule id="150011" level="14">
+    <if_matched_sid>140050</if_matched_sid>
+    <if_matched_sid>140052</if_matched_sid>
+    <description>ALERT: Unauthorized mailbox access followed by credential exfiltration</description>
+    <group>email,mailbox,exfiltration,correlation,highrisk</group>
+  </rule>
+
+  <!-- 8. Correlation: Mailbox access + attachment + external send -->
+  <rule id="150012" level="15">
+    <if_matched_sid>140050</if_matched_sid>
+    <if_matched_sid>140051</if_matched_sid>
+    <if_matched_sid>140053</if_matched_sid>
+    <description>CRITICAL: Unauthorized access with sensitive attachment sent externally</description>
+    <group>email,mailbox,exfiltration,correlation,critical</group>
+  </rule>
+
+  <!-- 9. Correlation: Mailbox access + attachment + external + after-hours -->
+  <rule id="150013" level="15">
+    <if_matched_sid>140050</if_matched_sid>
+    <if_matched_sid>140051</if_matched_sid>
+    <if_matched_sid>140053</if_matched_sid>
+    <if_matched_sid>140004</if_matched_sid>
+    <description>CRITICAL: Mailbox accessed by unauthorized user, attachment sent externally after-hours</description>
+    <group>email,mailbox,exfiltration,timely,correlation,critical</group>
+  </rule>
+
+</group>
+</ruleset>

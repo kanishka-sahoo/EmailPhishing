@@ -153,25 +153,6 @@ start_environment() {
       sleep 2
     done
 
-    # Check if wazuh-alerts-* data view exists
-    print_status "Checking if wazuh-alerts-* data view exists..."
-    if ! curl -s -X GET "http://localhost:5601/api/data_views/data_view/wazuh-alerts-*" -H 'kbn-xsrf: true' | grep -q '"id":"wazuh-alerts-*"'; then
-      print_status "Creating wazuh-alerts-* data view with @timestamp as time field..."
-      curl -s -X POST "http://localhost:5601/api/data_views/data_view" \
-        -H 'kbn-xsrf: true' \
-        -H 'Content-Type: application/json' \
-        -d '{"data_view":{"title":"wazuh-alerts-*","name":"wazuh-alerts-*","timeFieldName":"@timestamp"}}'
-    else
-      print_status "wazuh-alerts-* data view already exists."
-    fi
-
-    # Set wazuh-alerts-* as the default data view
-    print_status "Setting wazuh-alerts-* as the default data view..."
-    curl -s -X POST "http://localhost:5601/api/kibana/settings/defaultIndex" \
-      -H 'kbn-xsrf: true' \
-      -H 'Content-Type: application/json' \
-      -d '{"value":"wazuh-alerts-*"}'
-
     # After starting services, update admin password if indexer is running
     if docker compose ps | grep -q wazuh-indexer; then
         update_admin_password

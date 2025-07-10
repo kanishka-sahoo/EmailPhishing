@@ -1,0 +1,69 @@
+<ruleset>
+<group name="email_phishing_fake_domain_advanced">
+
+  <!-- RULE 1: Email sent from a known fake domain -->
+  <rule id="140018" level="11">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <field name="message">from=<(?P<sender>[^>]+)></field>
+    <list field="sender" lookup="match_key">fake_domains</list>
+    <description>Email sent from fake domain: $(sender)</description>
+    <group>email,fake_domain,phishing,suspicious</group>
+  </rule>
+
+  <!-- RULE 2: Email contains phishing link indicators (URL, shortened links, etc.) -->
+  <rule id="140019" level="11">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <list field="message" lookup="match_key">phishing_link_indicators</list>
+    <description>Suspicious link or phishing content found in email body</description>
+    <group>email,phishing,link,suspicious</group>
+  </rule>
+
+  <!-- RULE 3: Email contains phishing bait keywords -->
+  <rule id="140022" level="10">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <list field="message" lookup="match_key">phishing_keywords</list>
+    <description>Phishing-style bait detected in subject or body</description>
+    <group>email,phishing,bait,suspicious</group>
+  </rule>
+
+  <!-- RULE 4: Impersonation attempt from untrusted IP using VIP address -->
+  <rule id="140023" level="13">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <field name="srcip">!@trusted_smtp_ips</field>
+    <regex type="pcre2">From:\s(?P<from>[^\s]+)</regex>
+    <list field="from" lookup="match_key">vip_users</list>
+    <description>VIP spoof attempt: $(from) sent from untrusted IP $(srcip)</description>
+    <group>email,identity,ip,spoof,critical</group>
+  </rule>
+
+  <!-- RULE 5: Correlation - Fake domain + phishing link -->
+  <rule id="140020" level="14">
+    <if_matched_sid>140018</if_matched_sid>
+    <if_matched_sid>140019</if_matched_sid>
+    <description>CRITICAL: Email from fake domain containing phishing link</description>
+    <group>email,phishing,correlation,fake_domain,critical</group>
+  </rule>
+
+  <!-- RULE 6: Correlation - VIP spoof + phishing link -->
+  <rule id="140024" level="15">
+    <if_matched_sid>140023</if_matched_sid>
+    <if_matched_sid>140019</if_matched_sid>
+    <description>CRITICAL: VIP impersonation attempt with phishing link</description>
+    <group>email,spoof,phishing,correlation,critical</group>
+  </rule>
+
+  <!-- RULE 7: Correlation - Fake domain + phishing link + bait -->
+  <rule id="140025" level="15">
+    <if_matched_sid>140018</if_matched_sid>
+    <if_matched_sid>140019</if_matched_sid>
+    <if_matched_sid>140022</if_matched_sid>
+    <description>CRITICAL: Email from fake domain with phishing link and social engineering bait</description>
+    <group>email,phishing,social,bait,correlation,critical</group>
+  </rule>
+
+</group>
+</ruleset>

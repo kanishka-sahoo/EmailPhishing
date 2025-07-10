@@ -1,0 +1,111 @@
+<ruleset>
+<group name="email_exfiltration_advanced">
+
+  <!-- 1. Large or sensitive file type detected -->
+  <rule id="140031" level="11">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <field name="message">Content-Disposition: attachment;</field>
+    <list field="message" lookup="match_key">sensitive_attachments</list>
+    <description>Sensitive file type attached in email</description>
+    <group>email,attachment,exfiltration,sensitive</group>
+  </rule>
+
+  <!-- 2. Sensitive file name patterns -->
+  <rule id="140032" level="11">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <list field="message" lookup="match_key">sensitive_filenames</list>
+    <description>Suspicious or sensitive filename detected in attachment or subject</description>
+    <group>email,filename,exfiltration</group>
+  </rule>
+
+  <!-- 3. External recipient -->
+  <rule id="140033" level="10">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <field name="message">to=<(?P<to>[^>]+)></field>
+    <list field="to" lookup="match_key">external_domains</list>
+    <description>Email sent to external address: $(to)</description>
+    <group>email,outbound,external</group>
+  </rule>
+
+  <!-- 4. After-hours detection -->
+  <rule id="140004" level="10">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <match>from=</match>
+    <time>19:00:00</time>
+    <time_end>07:00:00</time_end>
+    <description>Email sent outside normal business hours</description>
+    <group>email,timing,afterhours</group>
+  </rule>
+
+  <!-- 5. Weekend detection -->
+  <rule id="140034" level="10">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <match>from=</match>
+    <weekday>Saturday</weekday>
+    <weekday>Sunday</weekday>
+    <description>Email sent during the weekend</description>
+    <group>email,timing,weekend</group>
+  </rule>
+
+  <!-- 6. Source IP not trusted -->
+  <rule id="140035" level="12">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <field name="srcip">!@trusted_smtp_ips</field>
+    <description>Email sent from untrusted source IP: $(srcip)</description>
+    <group>email,srcip,unauthorized</group>
+  </rule>
+
+  <!-- 7. File hosting link used in email body -->
+  <rule id="140036" level="12">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <list field="message" lookup="match_key">file_links</list>
+    <description>Suspicious file sharing link found in email content</description>
+    <group>email,link,exfiltration</group>
+  </rule>
+
+  <!-- 8. Frequency rule: 3 sensitive attachments in 5 min -->
+  <rule id="140037" level="13">
+    <decoded_as>json</decoded_as>
+    <field name="program">postfix</field>
+    <list field="message" lookup="match_key">sensitive_attachments</list>
+    <frequency>3</frequency>
+    <timeframe>300</timeframe>
+    <description>Multiple sensitive attachments sent in short time</description>
+    <group>email,volume,exfiltration</group>
+  </rule>
+
+  <!-- 9. Correlation: External + sensitive attachment -->
+  <rule id="150101" level="14">
+    <if_matched_sid>140031</if_matched_sid>
+    <if_matched_sid>140033</if_matched_sid>
+    <description>Sensitive file sent to external address</description>
+    <group>email,exfiltration,correlation</group>
+  </rule>
+
+  <!-- 10. Correlation: External + sensitive attachment + after hours -->
+  <rule id="150102" level="15">
+    <if_matched_sid>140031</if_matched_sid>
+    <if_matched_sid>140033</if_matched_sid>
+    <if_matched_sid>140004</if_matched_sid>
+    <description>CRITICAL: Sensitive file sent to external after-hours</description>
+    <group>email,exfiltration,timing,correlation,critical</group>
+  </rule>
+
+  <!-- 11. Correlation: Suspicious file name + external + file link -->
+  <rule id="150103" level="15">
+    <if_matched_sid>140032</if_matched_sid>
+    <if_matched_sid>140033</if_matched_sid>
+    <if_matched_sid>140036</if_matched_sid>
+    <description>CRITICAL: Sensitive file link or name sent to external party</description>
+    <group>email,leak,filelink,correlation,critical</group>
+  </rule>
+
+</group>
+</ruleset>
